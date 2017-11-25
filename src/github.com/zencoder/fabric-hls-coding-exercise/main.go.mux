@@ -1,0 +1,114 @@
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"os"
+	"encoding/json"
+	"io/ioutil"
+	"strconv"
+	"gorilla/mux" //https://github.com/gorilla/mux#examples
+)
+
+var (
+	port = "1337"
+	ip = "localhost"
+	simpleFilepath = "simple.json" // TODO
+	//simpleFilepath = "/Users/croeder/work/brightcove/src/github.com/zencoder/fabric-hls-coding-exercise/simple.json"
+)
+
+func main() {
+
+	r := mux.NewRouter()
+	fmt.Println("Application started...")
+	r.HandleFunc("/healthcheck", healthcheckHandler) 	
+	r.HandleFunc("/metadata/simple", metadataHandler) 	
+	r.HandleFunc("/duration/simple", durationHandler) 	
+	r.HandleFunc("/manifest/simple/{}", manifestHandler) 	
+	htt.Handle("/", r)
+	http.ListenAndServe(ip + ":" + port, nil)
+}
+
+// -----------------
+
+func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
+ 	w.WriteHeader(http.StatusOK)
+ 	w.Write([]byte("Server is healthy"))
+}
+
+// -----------------
+
+func metadataHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	b := readFile(simpleFilepath)	
+ 	w.Write([]byte(b))
+}
+
+func readFile(filename string)  string{
+  file, err := os.Open(filename)
+  if err != nil {
+    // handle the error here TODO
+    return "error opening the file"
+  }
+  defer file.Close()
+
+  // get the file size
+  stat, err := file.Stat()
+  if err != nil {
+    return "error getting size"
+  }
+  // read the file
+  bs := make([]byte, stat.Size())
+  _, err = file.Read(bs)
+  if err != nil {
+    return "error reading the file 2"
+  }
+
+	s := string(bs)
+  return s
+}
+
+// -- Task 4 -------------
+
+func durationHandler(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	b := sumDuration(simpleFilepath)	
+ 	w.Write([]byte(strconv.Itoa(b)))
+}
+
+// https://mholt.github.io/json-to-go/
+type DurationStruct struct {
+	Atoms []struct {
+		Duration int `json:"duration"`
+	} `json:"atoms"`
+}
+
+func sumDuration(filepath string ) int {
+	// read the file as json structs
+    raw, err := ioutil.ReadFile(filepath)
+    if err != nil {
+        fmt.Println(err.Error())
+        os.Exit(1)
+    }
+    var d DurationStruct
+    json.Unmarshal(raw, &d)
+
+	// sum the durations
+    var sum=0 
+	for _, thing := range d.Atoms {
+		sum =  sum + thing.Duration
+	}	
+	return sum
+}
+
+// -- Task 5 ---------------
+
+func manifestHandler(w http.ResponseWriter, r *http.Request) {
+ 	w.WriteHeader(http.StatusOK)
+ 	w.Write([]byte("Server is healthy"))
+    name := r.URL.Path[len("/simple/"):]
+	fmt.Println(name)
+}
+

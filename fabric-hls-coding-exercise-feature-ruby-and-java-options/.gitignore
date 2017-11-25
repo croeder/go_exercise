@@ -1,0 +1,5 @@
+*~
+.idea
+cucumber/cuke-logs/*
+cucumber/logs/*
+*.iml
